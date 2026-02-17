@@ -22,6 +22,8 @@ module Dial
         vernier_interval: VERNIER_INTERVAL,
         vernier_allocation_interval: VERNIER_ALLOCATION_INTERVAL,
         prosopite_ignore_queries: PROSOPITE_IGNORE_QUERIES,
+        inject_panel: true,
+        should_profile: nil,
       }
 
       @options.keys.each do |key|

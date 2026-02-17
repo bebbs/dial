@@ -49,6 +49,11 @@ module Dial
 
       profile_key = Storage.generate_profile_key
       store_profile_data! vernier_result, (Storage.profile_storage_key profile_key)
+
+      unless Dial._configuration.inject_panel
+        return [status, headers, rack_body]
+      end
+
       query_logs = clear_query_logs!
       server_timing = server_timing headers
       panel_html = Panel.html env, headers, profile_key, query_logs, ruby_vm_stat, gc_stat, gc_stat_heap, server_timing
@@ -129,6 +134,12 @@ module Dial
     def should_profile? request
       force_param = Dial._configuration.force_param
       return true if request.params[force_param]
+
+      should_profile_proc = Dial._configuration.should_profile
+      if should_profile_proc.respond_to?(:call)
+        result = should_profile_proc.call(request)
+        return false if result == false
+      end
 
       Dial._configuration.enabled &&
         rand(100) < Dial._configuration.sampling_percentage

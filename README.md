@@ -56,6 +56,34 @@ Dial.configure do |config|
 end
 ```
 
+### Per-Request Profiling Control
+
+You can control profiling on a per-request basis using the `should_profile` configuration option. For example, to only profile the first 5 requests that come into a dyno:
+
+```ruby
+# config/initializers/dial.rb
+
+# Thread-safe counter for tracking profiled requests per dyno
+$dial_profile_count = 0
+$dial_profile_mutex = Mutex.new
+
+Dial.configure do |config|
+  config.enabled = true
+  config.inject_panel = false # Don't show panel in production, just store profiles
+  
+  config.should_profile = ->(request) do
+    $dial_profile_mutex.synchronize do
+      if $dial_profile_count < 5
+        $dial_profile_count += 1
+        true
+      else
+        false
+      end
+    end
+  end
+end
+```
+
 ## Options
 
 Option | Description | Default
@@ -63,6 +91,8 @@ Option | Description | Default
 `enabled` | Whether profiling is enabled. | `true`
 `force_param` | Request parameter name to force profiling even when disabled. Always profiles (bypasses sampling). | `"dial_force"`
 `sampling_percentage` | Percentage of requests to profile. | `100` in development, `1` in production
+`should_profile` | Proc/lambda that receives a `Rack::Request` and returns `true`/`false` to control per-request profiling. If it returns `false`, the request won't be profiled. | `nil`
+`inject_panel` | Whether to inject the Dial panel HTML into responses. Set to `false` in production to collect profiles without showing the panel to users. | `true`
 `storage` | Storage adapter class for profile data. | `Dial::Storage::FileAdapter`
 `storage_options` | Options hash passed to storage adapter. | `{ ttl: 3600 }`
 `content_security_policy_nonce` | Sets the content security policy nonce to use when inserting Dial's script. Can be a string, or a Proc which receives `env` and response `headers` as arguments and returns the nonce string. | Rails generated nonce or `nil`
